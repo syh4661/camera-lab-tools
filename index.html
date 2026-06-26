@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REAL-METER FOV</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1215;
+      --panel: #181d22;
+      --panel-2: #222930;
+      --line: #38424c;
+      --text: #f5f7f8;
+      --muted: #aab5bf;
+      --target: #f7f8f9;
+      --target-ink: #111518;
+      --red: #ff3f59;
+      --cyan: #00b9d6;
+      --green: #75d44b;
+      --amber: #ffb931;
+      --blue: #5c8cff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #12161a;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button,
+    .link-button,
+    input,
+    select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+    }
+
+    button,
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    button.primary {
+      background: #1c5f74;
+      border-color: #298aa6;
+    }
+
+    button.ghost,
+    .link-button.ghost {
+      background: transparent;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0 10px;
+    }
+
+    main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .stage-wrap {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      background: #0b0d0f;
+    }
+
+    .stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .target {
+      position: relative;
+      width: min(100%, calc((100vh - 120px) * 1.7778));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      color: var(--target-ink);
+      background:
+        linear-gradient(90deg, rgba(17, 21, 24, 0.12) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(17, 21, 24, 0.12) 1px, transparent 1px),
+        var(--target);
+      border: 2px solid #0a0d10;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09);
+    }
+
+    .target::before,
+    .target::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      background: var(--target-ink);
+      opacity: 0.94;
+      z-index: 4;
+    }
+
+    .target::before {
+      left: 50%;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      transform: translateX(-50%);
+    }
+
+    .target::after {
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 3px;
+      transform: translateY(-50%);
+    }
+
+    .edge {
+      position: absolute;
+      z-index: 7;
+      background: var(--red);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: clamp(18px, 2vw, 36px);
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .edge.left,
+    .edge.right {
+      top: 0;
+      width: clamp(24px, 3.2vw, 54px);
+      height: 100%;
+      writing-mode: vertical-rl;
+    }
+
+    .edge.left {
+      left: 0;
+    }
+
+    .edge.right {
+      right: 0;
+      background: var(--cyan);
+    }
+
+    .edge.top,
+    .edge.bottom {
+      left: 0;
+      width: 100%;
+      height: clamp(20px, 2.4vw, 42px);
+      background: var(--amber);
+    }
+
+    .edge.top {
+      top: 0;
+    }
+
+    .edge.bottom {
+      bottom: 0;
+      background: var(--green);
+    }
+
+    .corner {
+      position: absolute;
+      z-index: 8;
+      width: clamp(52px, 7vw, 104px);
+      height: clamp(52px, 7vw, 104px);
+      border: clamp(7px, 0.8vw, 12px) solid var(--red);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .corner.tl {
+      left: 0;
+      top: 0;
+      border-right: 0;
+      border-bottom: 0;
+    }
+
+    .corner.tr {
+      right: 0;
+      top: 0;
+      border-left: 0;
+      border-bottom: 0;
+      border-color: var(--cyan);
+    }
+
+    .corner.bl {
+      left: 0;
+      bottom: 0;
+      border-right: 0;
+      border-top: 0;
+      border-color: var(--amber);
+    }
+
+    .corner.br {
+      right: 0;
+      bottom: 0;
+      border-left: 0;
+      border-top: 0;
+      border-color: var(--green);
+    }
+
+    .target-label {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 6;
+      width: min(56%, 680px);
+      transform: translate(-50%, -50%);
+      display: grid;
+      gap: 6px;
+      place-items: center;
+      padding: 14px 20px;
+      background: rgba(247, 248, 249, 0.82);
+      border: 2px solid rgba(17, 21, 24, 0.32);
+      color: var(--target-ink);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .target-label strong {
+      font-size: clamp(30px, 5vw, 82px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .target-label span {
+      font-size: clamp(13px, 1.4vw, 22px);
+      font-weight: 700;
+    }
+
+    .tick {
+      position: absolute;
+      z-index: 2;
+      background: rgba(17, 21, 24, 0.24);
+      pointer-events: none;
+    }
+
+    .tick.major {
+      background: rgba(17, 21, 24, 0.48);
+      z-index: 3;
+    }
+
+    .tick.x {
+      top: 0;
+      width: 1px;
+      height: 100%;
+    }
+
+    .tick.x.major {
+      width: 2px;
+    }
+
+    .tick.y {
+      left: 0;
+      width: 100%;
+      height: 1px;
+    }
+
+    .tick.y.major {
+      height: 2px;
+    }
+
+    .tick-label {
+      position: absolute;
+      z-index: 5;
+      color: var(--target-ink);
+      font-weight: 800;
+      font-size: clamp(13px, 1.5vw, 26px);
+      line-height: 1;
+      text-shadow:
+        -1px -1px 0 var(--target),
+        1px -1px 0 var(--target),
+        -1px 1px 0 var(--target),
+        1px 1px 0 var(--target);
+      pointer-events: none;
+    }
+
+    .tick-label.x {
+      transform: translateX(-50%);
+    }
+
+    .tick-label.x.top {
+      top: clamp(44px, 5vw, 72px);
+    }
+
+    .tick-label.x.bottom {
+      bottom: clamp(44px, 5vw, 72px);
+    }
+
+    .tick-label.y {
+      transform: translateY(-50%);
+    }
+
+    .tick-label.y.left {
+      left: clamp(50px, 6vw, 86px);
+    }
+
+    .tick-label.y.right {
+      right: clamp(50px, 6vw, 86px);
+    }
+
+    .ruler-band {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      height: 18%;
+      border-top: 2px solid rgba(17, 21, 24, 0.36);
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(17, 21, 24, 0.09) 0,
+          rgba(17, 21, 24, 0.09) 1px,
+          transparent 1px,
+          transparent 2.5%
+        ),
+        rgba(255, 185, 49, 0.14);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      border-top: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .hud div {
+      min-width: 0;
+      padding: 10px 12px;
+      background: #12161a;
+    }
+
+    .hud span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .hud strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 18px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    aside {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .panel {
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: #151a1f;
+      margin-bottom: 12px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .fields.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2b333b;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      font-size: 16px;
+      text-align: right;
+    }
+
+    .result {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid #41505c;
+      background: #10161b;
+      color: var(--text);
+    }
+
+    .result strong {
+      font-size: 28px;
+      color: var(--green);
+    }
+
+    .result span {
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #2b333b;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .target-only header,
+    .target-only aside,
+    .target-only .hud {
+      display: none;
+    }
+
+    .target-only .app {
+      grid-template-rows: 1fr;
+    }
+
+    .target-only main {
+      display: block;
+      min-height: 100vh;
+    }
+
+    .target-only .stage-wrap {
+      min-height: 100vh;
+      display: block;
+    }
+
+    .target-only .stage {
+      width: 100vw;
+      height: 100vh;
+      padding: 0;
+      background: #000;
+    }
+
+    .target-only .target {
+      width: 100vw;
+      max-width: none;
+      height: 100vh;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .float-exit {
+      position: fixed;
+      right: 14px;
+      top: 14px;
+      z-index: 30;
+      display: none;
+    }
+
+    .target-only .float-exit {
+      display: inline-flex;
+    }
+
+    @media (max-width: 980px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .stage {
+        padding: 10px;
+      }
+
+      .target {
+        width: 100%;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="float-exit ghost" id="exitTargetButton" type="button">Exit</button>
+
+  <div class="app">
+    <header>
+      <div class="brand">
+        <h1>REAL-METER</h1>
+        <span>FOV checker for monitor + table</span>
+      </div>
+      <div class="toolbar">
+        <a class="link-button ghost" href="camera-test.html">Camera</a>
+        <button class="primary" id="targetOnlyButton" type="button">Target Only</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage-wrap">
+        <div class="stage">
+          <div class="target" id="target">
+            <div class="ruler-band"></div>
+            <div id="ticks"></div>
+            <div class="edge left">LEFT</div>
+            <div class="edge right">RIGHT</div>
+            <div class="edge top">TOP</div>
+            <div class="edge bottom">BOTTOM</div>
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+            <div class="target-label">
+              <strong id="targetAngleLabel">140°</strong>
+              <span id="targetLabel">horizontal check</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud">
+          <div>
+            <span>Target size</span>
+            <strong id="hudSize">-</strong>
+          </div>
+          <div>
+            <span>Lens distance</span>
+            <strong id="hudDistance">-</strong>
+          </div>
+          <div>
+            <span>Horizontal</span>
+            <strong id="hudHorizontal">-</strong>
+          </div>
+          <div>
+            <span>Diagonal</span>
+            <strong id="hudDiagonal">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside>
+        <section class="panel">
+          <div class="panel-title">Monitor</div>
+          <div class="field">
+            <label for="preset">Preset</label>
+            <select id="preset">
+              <option value="24">24 in 16:9</option>
+              <option value="27" selected>27 in 16:9</option>
+              <option value="32">32 in 16:9</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="fields three">
+            <div class="field">
+              <label for="diagIn">Diagonal in</label>
+              <input id="diagIn" type="number" min="10" max="80" step="0.1" value="27">
+            </div>
+            <div class="field">
+              <label for="aspectW">Aspect W</label>
+              <input id="aspectW" type="number" min="1" max="32" step="1" value="16">
+            </div>
+            <div class="field">
+              <label for="aspectH">Aspect H</label>
+              <input id="aspectH" type="number" min="1" max="32" step="1" value="9">
+            </div>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <label for="targetWidthCm">Target width cm</label>
+              <input id="targetWidthCm" type="number" min="10" max="200" step="0.1">
+            </div>
+            <div class="field">
+              <label for="targetHeightCm">Target height cm</label>
+              <input id="targetHeightCm" type="number" min="6" max="120" step="0.1">
+            </div>
+          </div>
+          <button id="usePresetSizeButton" type="button">Use preset screen size</button>
+          <p class="note">전체화면 타깃으로 쓸 때는 이 값이 실제 모니터 화면 크기와 같아야 cm 눈금이 맞습니다.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">Angle Test</div>
+          <div class="fields">
+            <div class="field">
+              <label for="targetAngle">Target angle</label>
+              <input id="targetAngle" type="number" min="30" max="179" step="1" value="140">
+            </div>
+            <div class="field">
+              <label for="axis">Axis</label>
+              <select id="axis">
+                <option value="horizontal" selected>Horizontal</option>
+                <option value="diagonal">Diagonal</option>
+                <option value="vertical">Vertical</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="distanceCm">Lens to screen cm</label>
+            <input id="distanceCm" type="number" min="1" max="300" step="0.1" value="20">
+          </div>
+          <div class="result">
+            <strong id="requiredDistance">-</strong>
+            <span id="requiredText">-</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">Live Readout</div>
+          <div class="metric-list">
+            <div class="metric"><span>Horizontal FOV</span><strong id="horizontalFov">-</strong></div>
+            <div class="metric"><span>Vertical FOV</span><strong id="verticalFov">-</strong></div>
+            <div class="metric"><span>Diagonal FOV</span><strong id="diagonalFov">-</strong></div>
+            <div class="metric"><span>Diagonal size</span><strong id="diagonalSize">-</strong></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">Visible Marks</div>
+          <div class="fields">
+            <div class="field">
+              <label for="leftMarkCm">Left mark cm</label>
+              <input id="leftMarkCm" type="number" step="0.1" value="-25">
+            </div>
+            <div class="field">
+              <label for="rightMarkCm">Right mark cm</label>
+              <input id="rightMarkCm" type="number" step="0.1" value="25">
+            </div>
+          </div>
+          <div class="metric-list">
+            <div class="metric"><span>Visible width</span><strong id="visibleWidth">-</strong></div>
+            <div class="metric"><span>Measured FOV</span><strong id="measuredFov">-</strong></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">Distance Table</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Angle</th>
+                <th>H cm</th>
+                <th>D cm</th>
+              </tr>
+            </thead>
+            <tbody id="distanceTable"></tbody>
+          </table>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const preset = $("preset");
+    const diagIn = $("diagIn");
+    const aspectW = $("aspectW");
+    const aspectH = $("aspectH");
+    const targetWidthCm = $("targetWidthCm");
+    const targetHeightCm = $("targetHeightCm");
+    const usePresetSizeButton = $("usePresetSizeButton");
+    const targetAngle = $("targetAngle");
+    const axis = $("axis");
+    const distanceCm = $("distanceCm");
+    const target = $("target");
+    const ticks = $("ticks");
+    const targetAngleLabel = $("targetAngleLabel");
+    const targetLabel = $("targetLabel");
+    const requiredDistance = $("requiredDistance");
+    const requiredText = $("requiredText");
+    const horizontalFov = $("horizontalFov");
+    const verticalFov = $("verticalFov");
+    const diagonalFov = $("diagonalFov");
+    const diagonalSize = $("diagonalSize");
+    const leftMarkCm = $("leftMarkCm");
+    const rightMarkCm = $("rightMarkCm");
+    const visibleWidth = $("visibleWidth");
+    const measuredFov = $("measuredFov");
+    const distanceTable = $("distanceTable");
+    const hudSize = $("hudSize");
+    const hudDistance = $("hudDistance");
+    const hudHorizontal = $("hudHorizontal");
+    const hudDiagonal = $("hudDiagonal");
+    const targetOnlyButton = $("targetOnlyButton");
+    const exitTargetButton = $("exitTargetButton");
+
+    function toRad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function toDeg(rad) {
+      return rad * 180 / Math.PI;
+    }
+
+    function angleFromSize(sizeCm, distance) {
+      return toDeg(2 * Math.atan(sizeCm / (2 * distance)));
+    }
+
+    function distanceForAngle(sizeCm, angleDeg) {
+      return sizeCm / (2 * Math.tan(toRad(angleDeg / 2)));
+    }
+
+    function screenSizeFromPreset() {
+      const diagCm = Number(diagIn.value) * 2.54;
+      const w = Number(aspectW.value);
+      const h = Number(aspectH.value);
+      const scale = diagCm / Math.sqrt(w * w + h * h);
+      return {
+        width: w * scale,
+        height: h * scale,
+      };
+    }
+
+    function setPresetScreenSize() {
+      const size = screenSizeFromPreset();
+      targetWidthCm.value = size.width.toFixed(1);
+      targetHeightCm.value = size.height.toFixed(1);
+      leftMarkCm.value = (-size.width / 2).toFixed(1);
+      rightMarkCm.value = (size.width / 2).toFixed(1);
+      update();
+    }
+
+    function activeSizeForAxis(width, height, mode) {
+      if (mode === "vertical") return height;
+      if (mode === "diagonal") return Math.sqrt(width * width + height * height);
+      return width;
+    }
+
+    function formatCm(value) {
+      return `${value.toFixed(1)} cm`;
+    }
+
+    function formatDeg(value) {
+      return `${value.toFixed(1)}°`;
+    }
+
+    function renderTicks(width, height) {
+      ticks.replaceChildren();
+      const minX = Math.ceil(-width / 2);
+      const maxX = Math.floor(width / 2);
+      const minY = Math.ceil(-height / 2);
+      const maxY = Math.floor(height / 2);
+
+      for (let cm = minX; cm <= maxX; cm += 1) {
+        const pct = (cm + width / 2) / width * 100;
+        const line = document.createElement("div");
+        line.className = `tick x ${cm % 5 === 0 ? "major" : ""}`;
+        line.style.left = `${pct}%`;
+        ticks.appendChild(line);
+
+        if (cm % 10 === 0) {
+          ["top", "bottom"].forEach((pos) => {
+            const label = document.createElement("div");
+            label.className = `tick-label x ${pos}`;
+            label.style.left = `${pct}%`;
+            label.textContent = cm;
+            ticks.appendChild(label);
+          });
+        }
+      }
+
+      for (let cm = minY; cm <= maxY; cm += 1) {
+        const pct = (cm + height / 2) / height * 100;
+        const line = document.createElement("div");
+        line.className = `tick y ${cm % 5 === 0 ? "major" : ""}`;
+        line.style.top = `${pct}%`;
+        ticks.appendChild(line);
+
+        if (cm % 10 === 0 && cm !== 0) {
+          ["left", "right"].forEach((pos) => {
+            const label = document.createElement("div");
+            label.className = `tick-label y ${pos}`;
+            label.style.top = `${pct}%`;
+            label.textContent = cm;
+            ticks.appendChild(label);
+          });
+        }
+      }
+    }
+
+    function update() {
+      const width = Number(targetWidthCm.value);
+      const height = Number(targetHeightCm.value);
+      const distance = Number(distanceCm.value);
+      const angle = Number(targetAngle.value);
+      const mode = axis.value;
+
+      if (!width || !height || !distance || !angle) return;
+
+      target.style.aspectRatio = `${width} / ${height}`;
+      targetAngleLabel.textContent = `${angle.toFixed(0)}°`;
+      targetLabel.textContent = `${mode} check`;
+
+      const diag = Math.sqrt(width * width + height * height);
+      const hFov = angleFromSize(width, distance);
+      const vFov = angleFromSize(height, distance);
+      const dFov = angleFromSize(diag, distance);
+      const requiredAxisSize = activeSizeForAxis(width, height, mode);
+      const required = distanceForAngle(requiredAxisSize, angle);
+
+      horizontalFov.textContent = formatDeg(hFov);
+      verticalFov.textContent = formatDeg(vFov);
+      diagonalFov.textContent = formatDeg(dFov);
+      diagonalSize.textContent = formatCm(diag);
+      requiredDistance.textContent = formatCm(required);
+      requiredText.textContent =
+        `렌즈 앞면을 화면에서 ${formatCm(required)}에 두고 ${mode} 끝점이 모두 보이면 ${angle.toFixed(0)}° 이상입니다.`;
+
+      const left = Number(leftMarkCm.value);
+      const right = Number(rightMarkCm.value);
+      const visible = Math.abs(right - left);
+      visibleWidth.textContent = formatCm(visible);
+      measuredFov.textContent = formatDeg(angleFromSize(visible, distance));
+
+      hudSize.textContent = `${formatCm(width)} x ${formatCm(height)}`;
+      hudDistance.textContent = formatCm(distance);
+      hudHorizontal.textContent = formatDeg(hFov);
+      hudDiagonal.textContent = formatDeg(dFov);
+
+      renderTicks(width, height);
+      renderTable(width, diag);
+    }
+
+    function renderTable(width, diag) {
+      const angles = [80, 90, 100, 120, 140];
+      distanceTable.replaceChildren();
+      angles.forEach((angle) => {
+        const tr = document.createElement("tr");
+        const hDistance = distanceForAngle(width, angle);
+        const dDistance = distanceForAngle(diag, angle);
+        tr.innerHTML = `
+          <td>${angle}°</td>
+          <td>${hDistance.toFixed(1)}</td>
+          <td>${dDistance.toFixed(1)}</td>
+        `;
+        distanceTable.appendChild(tr);
+      });
+    }
+
+    preset.addEventListener("change", () => {
+      if (preset.value !== "custom") {
+        diagIn.value = preset.value;
+        aspectW.value = 16;
+        aspectH.value = 9;
+        setPresetScreenSize();
+      }
+    });
+
+    usePresetSizeButton.addEventListener("click", setPresetScreenSize);
+
+    [
+      diagIn,
+      aspectW,
+      aspectH,
+      targetWidthCm,
+      targetHeightCm,
+      targetAngle,
+      axis,
+      distanceCm,
+      leftMarkCm,
+      rightMarkCm,
+    ].forEach((control) => {
+      control.addEventListener("input", update);
+      control.addEventListener("change", update);
+    });
+
+    async function enterTargetOnly() {
+      document.body.classList.add("target-only");
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        // Fullscreen can be blocked; target-only layout still works inside the window.
+      }
+    }
+
+    async function exitTargetOnly() {
+      document.body.classList.remove("target-only");
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    }
+
+    targetOnlyButton.addEventListener("click", enterTargetOnly);
+    exitTargetButton.addEventListener("click", exitTargetOnly);
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) {
+        document.body.classList.remove("target-only");
+      }
+    });
+
+    setPresetScreenSize();
+  </script>
+</body>
+</html>

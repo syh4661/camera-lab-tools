@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fisheye Camera Test</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101214;
+      --panel: #191d21;
+      --panel-2: #22272d;
+      --line: #3b424a;
+      --text: #f3f7fa;
+      --muted: #a9b3bd;
+      --cyan: #54d5ff;
+      --lime: #a4e66a;
+      --amber: #ffca62;
+      --red: #ff6f7d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #14171a;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .nav-link {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(255, 111, 125, 0.16);
+    }
+
+    .dot.live {
+      background: var(--lime);
+      box-shadow: 0 0 0 3px rgba(164, 230, 106, 0.16);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      min-height: 0;
+    }
+
+    .stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        #0c0e10;
+      background-size: 36px 36px;
+    }
+
+    .viewer {
+      position: relative;
+      width: min(100%, calc((100vh - 118px) * 1.7778));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #050607;
+    }
+
+    video,
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    video {
+      background: #050607;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .overlay.grid {
+      background:
+        linear-gradient(90deg, rgba(84, 213, 255, 0.28) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(84, 213, 255, 0.28) 1px, transparent 1px);
+      background-size: 8.333% 8.333%;
+    }
+
+    .overlay.center::before,
+    .overlay.center::after {
+      content: "";
+      position: absolute;
+      background: rgba(255, 202, 98, 0.9);
+    }
+
+    .overlay.center::before {
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 100%;
+    }
+
+    .overlay.center::after {
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+    }
+
+    .circle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(78%, 78vh);
+      aspect-ratio: 1;
+      border: 2px solid rgba(164, 230, 106, 0.82);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .circle::before,
+    .circle::after {
+      content: "";
+      position: absolute;
+      border: 1px solid rgba(164, 230, 106, 0.42);
+      border-radius: 50%;
+      inset: 16.66%;
+    }
+
+    .circle::after {
+      inset: 33.33%;
+    }
+
+    .corner {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-color: rgba(255, 111, 125, 0.95);
+      border-style: solid;
+      pointer-events: none;
+    }
+
+    .corner.tl {
+      left: 18px;
+      top: 18px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .corner.tr {
+      right: 18px;
+      top: 18px;
+      border-width: 2px 2px 0 0;
+    }
+
+    .corner.bl {
+      left: 18px;
+      bottom: 18px;
+      border-width: 0 0 2px 2px;
+    }
+
+    .corner.br {
+      right: 18px;
+      bottom: 18px;
+      border-width: 0 2px 2px 0;
+    }
+
+    aside {
+      min-width: 0;
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    label,
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    select,
+    button {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+    }
+
+    select {
+      padding: 0 10px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #1a5d73;
+      border-color: #2a98ba;
+    }
+
+    button:disabled {
+      color: #6d7781;
+      cursor: default;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .toggles {
+      display: grid;
+      gap: 8px;
+    }
+
+    .toggle {
+      min-height: 38px;
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--cyan);
+    }
+
+    .stats {
+      display: grid;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2c3238;
+    }
+
+    .stat span:first-child {
+      color: var(--muted);
+    }
+
+    .thumb {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line);
+      background: #08090a;
+      object-fit: contain;
+    }
+
+    .message {
+      min-height: 42px;
+      color: var(--amber);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      background: #14171a;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-rows: auto auto auto;
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        padding: 10px;
+      }
+
+      .viewer {
+        width: 100%;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Fisheye Camera Test</h1>
+      <a class="nav-link" href="index.html">REAL-METER</a>
+      <div class="status" aria-live="polite">
+        <span class="dot" id="liveDot"></span>
+        <span id="statusText">대기 중</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage" aria-label="camera preview">
+        <div class="viewer">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="overlay grid" id="gridOverlay"></div>
+          <div class="overlay center" id="centerOverlay"></div>
+          <div class="circle" id="circleOverlay"></div>
+          <div class="corner tl" id="cornerTL"></div>
+          <div class="corner tr" id="cornerTR"></div>
+          <div class="corner bl" id="cornerBL"></div>
+          <div class="corner br" id="cornerBR"></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="section">
+          <label for="cameraSelect">Camera</label>
+          <select id="cameraSelect"></select>
+        </div>
+
+        <div class="section row">
+          <button class="primary" id="startButton" type="button" title="Start camera">▶ Start</button>
+          <button id="stopButton" type="button" title="Stop camera" disabled>■ Stop</button>
+        </div>
+
+        <div class="section row">
+          <button id="snapshotButton" type="button" title="Capture snapshot" disabled>▣ Shot</button>
+          <button id="refreshButton" type="button" title="Refresh devices">↻ Scan</button>
+        </div>
+
+        <div class="section">
+          <div class="label">Overlay</div>
+          <div class="toggles">
+            <label class="toggle"><input id="gridToggle" type="checkbox" checked>Grid</label>
+            <label class="toggle"><input id="centerToggle" type="checkbox" checked>Center cross</label>
+            <label class="toggle"><input id="circleToggle" type="checkbox" checked>Circle rings</label>
+            <label class="toggle"><input id="cornerToggle" type="checkbox" checked>Corner marks</label>
+          </div>
+        </div>
+
+        <div class="section stats">
+          <div class="stat"><span>Resolution</span><strong id="resolutionStat">-</strong></div>
+          <div class="stat"><span>Aspect</span><strong id="aspectStat">-</strong></div>
+          <div class="stat"><span>FPS</span><strong id="fpsStat">-</strong></div>
+          <div class="stat"><span>Device</span><strong id="deviceStat">-</strong></div>
+        </div>
+
+        <div class="section">
+          <div class="label">Snapshot</div>
+          <canvas class="thumb" id="snapshotCanvas"></canvas>
+        </div>
+
+        <div class="message" id="message"></div>
+      </aside>
+    </main>
+
+    <footer>
+      <span>중앙 십자선과 테두리 마크가 렌즈 정렬 확인용 기준선입니다.</span>
+      <span>localhost camera test</span>
+    </footer>
+  </div>
+
+  <script>
+    const cameraSelect = document.getElementById("cameraSelect");
+    const video = document.getElementById("video");
+    const liveDot = document.getElementById("liveDot");
+    const statusText = document.getElementById("statusText");
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
+    const snapshotButton = document.getElementById("snapshotButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const snapshotCanvas = document.getElementById("snapshotCanvas");
+    const message = document.getElementById("message");
+    const resolutionStat = document.getElementById("resolutionStat");
+    const aspectStat = document.getElementById("aspectStat");
+    const fpsStat = document.getElementById("fpsStat");
+    const deviceStat = document.getElementById("deviceStat");
+
+    const overlays = {
+      gridToggle: ["gridOverlay"],
+      centerToggle: ["centerOverlay"],
+      circleToggle: ["circleOverlay"],
+      cornerToggle: ["cornerTL", "cornerTR", "cornerBL", "cornerBR"],
+    };
+
+    let stream = null;
+    let frameCount = 0;
+    let lastFrameTime = performance.now();
+    let fpsTimer = null;
+
+    function setMessage(text = "") {
+      message.textContent = text;
+    }
+
+    function setLive(isLive) {
+      liveDot.classList.toggle("live", isLive);
+      statusText.textContent = isLive ? "라이브" : "대기 중";
+      stopButton.disabled = !isLive;
+      snapshotButton.disabled = !isLive;
+    }
+
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      stream = null;
+      video.srcObject = null;
+      setLive(false);
+      if (fpsTimer) {
+        clearInterval(fpsTimer);
+        fpsTimer = null;
+      }
+      fpsStat.textContent = "-";
+    }
+
+    function formatRatio(width, height) {
+      const gcd = (a, b) => b ? gcd(b, a % b) : a;
+      const divisor = gcd(width, height);
+      return `${width / divisor}:${height / divisor}`;
+    }
+
+    function updateStats(track) {
+      const settings = track.getSettings();
+      const width = settings.width || video.videoWidth;
+      const height = settings.height || video.videoHeight;
+      resolutionStat.textContent = width && height ? `${width} x ${height}` : "-";
+      aspectStat.textContent = width && height ? formatRatio(width, height) : "-";
+      fpsStat.textContent = settings.frameRate ? `${Math.round(settings.frameRate)} target` : "-";
+      const selected = cameraSelect.selectedOptions[0];
+      deviceStat.textContent = selected ? selected.textContent : "-";
+    }
+
+    async function listCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter((device) => device.kind === "videoinput");
+      const previous = cameraSelect.value;
+      cameraSelect.replaceChildren();
+
+      cameras.forEach((camera, index) => {
+        const option = document.createElement("option");
+        option.value = camera.deviceId;
+        option.textContent = camera.label || `Camera ${index + 1}`;
+        cameraSelect.appendChild(option);
+      });
+
+      if (!cameras.length) {
+        const option = document.createElement("option");
+        option.textContent = "No camera found";
+        option.value = "";
+        cameraSelect.appendChild(option);
+        startButton.disabled = true;
+      } else {
+        startButton.disabled = false;
+        if ([...cameraSelect.options].some((option) => option.value === previous)) {
+          cameraSelect.value = previous;
+        }
+      }
+    }
+
+    async function startCamera() {
+      stopStream();
+      setMessage("");
+
+      const constraints = {
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        },
+        audio: false,
+      };
+
+      if (cameraSelect.value) {
+        constraints.video.deviceId = { exact: cameraSelect.value };
+      }
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        await video.play();
+        await listCameras();
+        const track = stream.getVideoTracks()[0];
+        updateStats(track);
+        setLive(true);
+        startFpsCounter();
+      } catch (error) {
+        setLive(false);
+        setMessage(error.message || "Camera start failed.");
+      }
+    }
+
+    function startFpsCounter() {
+      frameCount = 0;
+      lastFrameTime = performance.now();
+      if (fpsTimer) clearInterval(fpsTimer);
+      const tick = () => {
+        frameCount += 1;
+        video.requestVideoFrameCallback(tick);
+      };
+      if ("requestVideoFrameCallback" in video) {
+        video.requestVideoFrameCallback(tick);
+        fpsTimer = setInterval(() => {
+          const now = performance.now();
+          const fps = frameCount * 1000 / (now - lastFrameTime);
+          fpsStat.textContent = `${Math.round(fps)} live`;
+          frameCount = 0;
+          lastFrameTime = now;
+        }, 1000);
+      }
+    }
+
+    function takeSnapshot() {
+      if (!stream || !video.videoWidth || !video.videoHeight) return;
+      snapshotCanvas.width = video.videoWidth;
+      snapshotCanvas.height = video.videoHeight;
+      const ctx = snapshotCanvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+    }
+
+    Object.entries(overlays).forEach(([toggleId, ids]) => {
+      document.getElementById(toggleId).addEventListener("change", (event) => {
+        ids.forEach((id) => {
+          document.getElementById(id).style.display = event.target.checked ? "" : "none";
+        });
+      });
+    });
+
+    startButton.addEventListener("click", startCamera);
+    stopButton.addEventListener("click", stopStream);
+    snapshotButton.addEventListener("click", takeSnapshot);
+    refreshButton.addEventListener("click", async () => {
+      setMessage("");
+      await listCameras();
+    });
+    cameraSelect.addEventListener("change", () => {
+      if (stream) startCamera();
+    });
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      startButton.disabled = true;
+      setMessage("This browser does not support camera access.");
+    } else {
+      listCameras().catch((error) => setMessage(error.message));
+    }
+  </script>
+</body>
+</html>
