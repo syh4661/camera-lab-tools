@@ -14,8 +14,18 @@ const parts = await Promise.all(
   partNames.map((name) => readFile(resolve(packedRoot, name), 'utf8')),
 );
 const compressed = Buffer.from(parts.join(''), 'base64');
-const source = gunzipSync(compressed);
+let source = gunzipSync(compressed).toString('utf8');
+
+// Keep the packed source transport-only while generating a strict TypeScript source file.
+source = source
+  .replace(
+    "'WebGPU를 지원하는 최신 Chrome/Edge가 필요합닄.'",
+    "'WebGPU를 지원하는 최신 Chrome/Edge가 필요합니다.'",
+  )
+  .replace('  private previousDepth?: Float32Array;\n', '  private previousDepth: Float32Array | undefined;\n')
+  .replace('  private calibrationLow?: number;\n', '  private calibrationLow: number | undefined;\n')
+  .replace('  private calibrationHigh?: number;\n', '  private calibrationHigh: number | undefined;\n');
 
 await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, source);
+await writeFile(outputPath, source, 'utf8');
 console.log(`Materialized ${outputPath}`);
