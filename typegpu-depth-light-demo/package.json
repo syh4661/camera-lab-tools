@@ -1,0 +1,38 @@
+{
+  "name": "typegpu-depth-aware-light-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "node scripts/materialize-main.mjs",
+    "predev": "node scripts/materialize-main.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/materialize-main.mjs",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "precheck": "node scripts/materialize-main.mjs",
+    "check": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "typegpu": "^0.12.0"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.70",
+    "typescript": "npm:tsover@6.0.1",
+    "unplugin-typegpu": "^0.12.1",
+    "vite": "^8.0.12"
+  },
+  "overrides": {
+    "typescript": "npm:tsover@6.0.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "npm:tsover@6.0.1"
+    }
+  },
+  "description": "Browser-based TypeGPU depth-aware relighting demo with stabilized relative Depth Anything V2.",
+  "engines": {
+    "node": ">=22.12"
+  }
+}

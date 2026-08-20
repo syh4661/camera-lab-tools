@@ -1,11 +1,33 @@
 # Camera Lab Tools
 
-Browser-based tools for quick camera field-of-view checks and lens sanity tests.
+Browser-based tools for quick camera field-of-view checks, lens sanity tests, and GPU camera experiments.
 
 ## Tools
 
 - `index.html` / REAL-METER: a monitor-based FOV checker for table-top measurements.
 - `camera-test.html`: a camera preview page with grid, center cross, rings, corner marks, and snapshots.
+- `typegpu-depth-light-demo/`: webcam depth-aware relighting with TypeGPU and optional Depth Anything V2.
+
+## TypeGPU depth-aware relighting
+
+```powershell
+git clone -b feature/typegpu-depth-light-demo https://github.com/syh4661/camera-lab-tools.git
+cd camera-lab-tools\typegpu-depth-light-demo
+.\run.ps1
+```
+
+For an existing clone:
+
+```powershell
+cd camera-lab-tools
+git fetch origin
+git switch feature/typegpu-depth-light-demo
+git pull origin feature/typegpu-depth-light-demo
+cd typegpu-depth-light-demo
+.\run.ps1
+```
+
+The AI mode uses monocular **relative depth**, not metric distance. The stabilized pipeline locks a robust range, aligns consecutive frames, applies edge-aware spatial filtering and motion-adaptive temporal filtering, and stores depth in `rgba16float`. See [`typegpu-depth-light-demo/README.md`](typegpu-depth-light-demo/README.md) for controls and limitations.
 
 ## Quick FOV Check
 
